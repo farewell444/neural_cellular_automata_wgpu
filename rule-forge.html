@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rule Forge</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg0: #060b12;
+      --bg1: #0b1320;
+      --panel: rgba(8, 14, 23, 0.78);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text: #eef7f3;
+      --muted: rgba(238, 247, 243, 0.68);
+      --accent: #ffbf69;
+      --accent2: #74d7ff;
+      --good: #85efc0;
+      --danger: #ff7f8f;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(255, 191, 105, 0.15), transparent 26%),
+        radial-gradient(circle at 82% 20%, rgba(116, 215, 255, 0.18), transparent 28%),
+        radial-gradient(circle at 72% 86%, rgba(133, 239, 192, 0.1), transparent 22%),
+        linear-gradient(145deg, var(--bg0), var(--bg1) 62%, #050910);
+      color: var(--text);
+      font-family: "Bahnschrift", "Segoe UI", "Trebuchet MS", sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+      background-size: 54px 54px;
+      opacity: 0.12;
+      mix-blend-mode: screen;
+    }
+
+    #game {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .shell {
+      position: fixed;
+      inset: 18px auto 18px 18px;
+      width: min(420px, calc(100vw - 36px));
+      pointer-events: none;
+    }
+
+    .panel {
+      pointer-events: auto;
+      height: 100%;
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding: 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--accent2);
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(255, 191, 105, 0.7);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 44px);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      line-height: 0.95;
+    }
+
+    .lead {
+      margin: 12px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      padding: 10px 11px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card span {
+      display: block;
+      font-size: 10px;
+      color: rgba(238, 247, 243, 0.65);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .card strong {
+      display: block;
+      font-size: 16px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+    }
+
+    .console {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(238, 247, 243, 0.72);
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      box-sizing: border-box;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(4, 9, 15, 0.75);
+      color: var(--text);
+      padding: 12px 13px;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.45;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: rgba(255, 191, 105, 0.5);
+      box-shadow: 0 0 0 4px rgba(255, 191, 105, 0.08);
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 11px 12px;
+      font: inherit;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 0.16s ease, filter 0.16s ease, opacity 0.16s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button.primary {
+      color: #1a1205;
+      background: linear-gradient(135deg, var(--accent), #ffe1b6);
+      box-shadow: 0 12px 24px rgba(255, 191, 105, 0.18);
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(116, 215, 255, 0.2), rgba(255, 255, 255, 0.06));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    button.ghost {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(238, 247, 243, 0.86);
+      font-size: 12px;
+    }
+
+    .chip[data-kind="good"] {
+      color: var(--good);
+    }
+
+    .chip[data-kind="warn"] {
+      color: var(--accent);
+    }
+
+    .chip[data-kind="info"] {
+      color: var(--accent2);
+    }
+
+    .log {
+      margin-top: 6px;
+      max-height: 230px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+    }
+
+    .rule-item {
+      padding: 10px 11px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .rule-item .source {
+      font-size: 13px;
+      color: #fff;
+      line-height: 1.45;
+      margin-bottom: 4px;
+    }
+
+    .rule-item .notes {
+      font-size: 11px;
+      color: rgba(238, 247, 243, 0.68);
+      letter-spacing: 0.03em;
+      line-height: 1.45;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: rgba(238, 247, 243, 0.68);
+      letter-spacing: 0.03em;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: rgba(238, 247, 243, 0.54);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(2, 5, 10, 0.42);
+      backdrop-filter: blur(4px);
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      width: min(440px, calc(100vw - 32px));
+      border-radius: 24px;
+      padding: 22px;
+      background: linear-gradient(180deg, rgba(12, 18, 28, 0.92), rgba(7, 10, 15, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .overlay-card .label {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--danger);
+      margin-bottom: 12px;
+    }
+
+    .overlay-card h2 {
+      margin: 0 0 10px;
+      font-size: 32px;
+      letter-spacing: 0.04em;
+    }
+
+    .overlay-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    @media (max-width: 840px) {
+      .shell {
+        inset: 12px 12px auto 12px;
+        width: auto;
+      }
+
+      .panel {
+        max-height: calc(100vh - 24px);
+      }
+    }
+
+    @media (max-width: 540px) {
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="shell">
+    <section class="panel">
+      <div class="eyebrow">NATURAL LANGUAGE RULE GAME</div>
+      <h1>Rule Forge</h1>
+      <p class="lead">
+        Пиши правила обычным языком, нажимай Enter и смотри, как игра перекомпилирует свои функции без перезагрузки.
+      </p>
+
+      <div class="hud">
+        <div class="card"><span>Score</span><strong id="scoreValue">0</strong></div>
+        <div class="card"><span>Core HP</span><strong id="coreValue">100</strong></div>
+        <div class="card"><span>Bodies</span><strong id="bodyValue">0</strong></div>
+        <div class="card"><span>Particles</span><strong id="particleValue">0</strong></div>
+        <div class="card"><span>Mode</span><strong id="modeValue">bounce</strong></div>
+        <div class="card"><span>Time</span><strong id="timeValue">1.00x</strong></div>
+      </div>
+
+      <div class="console">
+        <label for="ruleInput">Новая команда</label>
+        <textarea id="ruleInput" spellcheck="false" placeholder="Например: сделай гравитацию слабее\nпусть при столкновении объекты взрываются"></textarea>
+        <div class="buttons">
+          <button id="applyBtn" class="primary">Применить</button>
+          <button id="undoBtn" class="secondary">Отменить последнюю</button>
+          <button id="clearRulesBtn" class="ghost">Очистить правила</button>
+          <button id="resetWorldBtn" class="ghost">Сбросить мир</button>
+        </div>
+      </div>
+
+      <div class="examples" id="examples">
+        <button class="chip" data-rule="сделай гравитацию слабее" data-kind="warn">гравитация слабее</button>
+        <button class="chip" data-rule="пусть при столкновении объекты взрываются" data-kind="warn">столкновения взрываются</button>
+        <button class="chip" data-rule="объекты тянутся к курсору" data-kind="info">тянутся к курсору</button>
+        <button class="chip" data-rule="замедли время и увеличь спавн" data-kind="good">медленнее / больше спавна</button>
+        <button class="chip" data-rule="объекты проходят сквозь стены" data-kind="info">сквозь стены</button>
+        <button class="chip" data-rule="объекты становятся больше и быстрее" data-kind="good">больше и быстрее</button>
+      </div>
+
+      <div class="log" id="ruleLog"></div>
+      <div class="status" id="compileStatus">Runtime: waiting for the first compile...</div>
+      <div class="hint">Enter применяет правило. Shift+Enter вставляет новую строку.</div>
+    </section>
+  </div>
+
+  <div class="overlay hidden" id="gameOver">
+    <div class="overlay-card">
+      <div class="label">core destroyed</div>
+      <h2>Ядро разрушено</h2>
+      <p>Измени правила и нажми «Сбросить мир», чтобы начать новую попытку без перезагрузки страницы.</p>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+
+      const ui = {
+        scoreValue: document.getElementById('scoreValue'),
+        coreValue: document.getElementById('coreValue'),
+        bodyValue: document.getElementById('bodyValue'),
+        particleValue: document.getElementById('particleValue'),
+        modeValue: document.getElementById('modeValue'),
+        timeValue: document.getElementById('timeValue'),
+        ruleInput: document.getElementById('ruleInput'),
+        applyBtn: document.getElementById('applyBtn'),
+        undoBtn: document.getElementById('undoBtn'),
+        clearRulesBtn: document.getElementById('clearRulesBtn'),
+        resetWorldBtn: document.getElementById('resetWorldBtn'),
+        ruleLog: document.getElementById('ruleLog'),
+        compileStatus: document.getElementById('compileStatus'),
+        gameOver: document.getElementById('gameOver'),
+        examples: document.getElementById('examples'),
+      };
+
+      const defaultSpec = {
+        gravity: 260,
+        airDrag: 0.992,
+        restitution: 0.86,
+        spawnRate: 1.15,
+        maxBodies: 72,
+        bodyScale: 1,
+        speedScale: 1,
+        timeScale: 1,
+        pointerMode: 'none',
+        pointerForce: 1700,
+        pointerFalloff: 240,
+        corePull: 90,
+        collisionMode: 'bounce',
+        wallMode: 'bounce',
+        explosionRadius: 60,
+        explosionImpulse: 290,
+        coreDamage: 12,
+        spawnSide: 'edges',
+        bodyRadiusMin: 10,
+        bodyRadiusMax: 18,
+        bodySpeedMin: 100,
+        bodySpeedMax: 180,
+        coreRadius: 34,
+      };
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: Math.max(1, window.devicePixelRatio || 1),
+        running: true,
+        gameOver: false,
+        time: 0,
+        lastTs: 0,
+        score: 0,
+        bestScore: 0,
+        destroyed: 0,
+        flash: 0,
+        spawnAccumulator: 0,
+        ruleEntries: [],
+        spec: cloneSpec(defaultSpec),
+        runtime: null,
+        bodies: [],
+        particles: [],
+        pointer: {
+          x: 0,
+          y: 0,
+          active: false,
+          down: false,
+        },
+        core: {
+          x: 0,
+          y: 0,
+          r: defaultSpec.coreRadius,
+          health: 100,
+          maxHealth: 100,
+        },
+        compileCount: 0,
+      };
+
+      function cloneSpec(spec) {
+        return { ...spec };
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function randRange(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function randSign() {
+        return Math.random() < 0.5 ? -1 : 1;
+      }
+
+      function distance(ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        return Math.hypot(dx, dy);
+      }
+
+      function normalizeText(text) {
+        return text
+          .toLowerCase()
+          .replace(/ё/g, 'е')
+          .replace(/[^\da-zа-я]+/gi, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function containsAny(text, terms) {
+        return terms.some((term) => text.includes(term));
+      }
+
+      function extractFactor(text) {
+        const match = text.match(/(?:в|на)?\s*(\d+(?:[.,]\d+)?)\s*(?:раз(?:а|ов)?|x|кратн\w*)?/i);
+        if (!match) {
+          return null;
+        }
+        const value = parseFloat(match[1].replace(',', '.'));
+        if (!Number.isFinite(value) || value <= 0) {
+          return null;
+        }
+        return value;
+      }
+
+      function factorFromText(text, weakFactor = 0.66, strongFactor = 1.35) {
+        const weak = containsAny(text, ['слаб', 'меньше', 'ниже', 'уменьш', 'ослаб', 'медлен', 'мягч', 'тише']);
+        const strong = containsAny(text, ['сильнее', 'больше', 'выше', 'увелич', 'усил', 'быстрее', 'резче', 'жестч']);
+        const explicit = extractFactor(text);
+        if (explicit) {
+          if (weak && !strong) {
+            return 1 / explicit;
+          }
+          if (strong && !weak) {
+            return explicit;
+          }
+          return explicit;
+        }
+        if (weak && !strong) {
+          return weakFactor;
+        }
+        if (strong && !weak) {
+          return strongFactor;
+        }
+        return 1;
+      }
+
+      function scaleSpecValue(spec, key, factor, min, max) {
+        spec[key] = clamp(spec[key] * factor, min, max);
+      }
+
+      function parseInstruction(text, spec) {
+        const t = normalizeText(text);
+        const notes = [];
+        const factor = factorFromText(t);
+        const weak = containsAny(t, ['слаб', 'меньше', 'ниже', 'уменьш', 'ослаб', 'медлен', 'мягч', 'тише']);
+        const strong = containsAny(t, ['сильнее', 'больше', 'выше', 'увелич', 'усил', 'быстрее', 'резче', 'жестч']);
+        const hasExplosion = containsAny(t, ['взрыв', 'взорв', 'explode']);
+        const hasMerge = containsAny(t, ['слив', 'слиян', 'merge']);
+        const hasBounce = containsAny(t, ['отскок', 'рикошет', 'bounce', 'упруг']);
+
+        if (containsAny(t, ['гравитац', 'gravity', 'тяжест'])) {
+          if (containsAny(t, ['без гравитации', 'убери гравитацию', 'выключи гравитацию', 'нулевая гравитация'])) {
+            spec.gravity = 0;
+            notes.push('gravity = 0');
+          } else {
+            scaleSpecValue(spec, 'gravity', factor, 0, 1200);
+            notes.push(`gravity x${factor.toFixed(2)}`);
+          }
+        }
+
+        if (containsAny(t, ['трение', 'сопротивлен', 'drag', 'демпф'])) {
+          const delta = 0.008 * factor;
+          if (weak && !strong) {
+            spec.airDrag = clamp(spec.airDrag + delta, 0.94, 0.9995);
+          } else if (strong && !weak) {
+            spec.airDrag = clamp(spec.airDrag - delta, 0.94, 0.9995);
+          }
+          notes.push(`drag ${spec.airDrag.toFixed(3)}`);
+        }
+
+        if (containsAny(t, ['отскок', 'рикошет', 'bounce', 'упруг'])) {
+          const delta = 0.05 * factor;
+          if (weak && !strong) {
+            spec.restitution = clamp(spec.restitution - delta, 0.1, 0.98);
+          } else if (strong && !weak) {
+            spec.restitution = clamp(spec.restitution + delta, 0.1, 0.98);
+          }
+          notes.push(`bounce ${spec.restitution.toFixed(2)}`);
+        }
+
+        if (hasExplosion || containsAny(t, ['при столкнов', 'при удар', 'при касан'])) {
+          if (hasExplosion) {
+            spec.collisionMode = 'explode';
+            notes.push('collision -> explode');
+          } else if (hasMerge) {
+            spec.collisionMode = 'merge';
+            notes.push('collision -> merge');
+          } else if (hasBounce) {
+            spec.collisionMode = 'bounce';
+            notes.push('collision -> bounce');
+          }
+        }
+
+        if (containsAny(t, ['слива', 'соединя', 'склеива', 'merge'])) {
+          spec.collisionMode = 'merge';
+          notes.push('collision -> merge');
+        }
+
+        if (containsAny(t, ['не взрыв', 'без взрыв', 'не explode'])) {
+          spec.collisionMode = 'bounce';
+          notes.push('collision -> bounce');
+        }
+
+        if (containsAny(t, ['курсор', 'мыш', 'указатель', 'pointer'])) {
+          if (containsAny(t, ['отталк', 'от курсор', 'от мыш', 'от указатель'])) {
+            spec.pointerMode = 'repel';
+            scaleSpecValue(spec, 'pointerForce', factor, 0, 6000);
+            notes.push(`pointer = repel (${Math.round(spec.pointerForce)})`);
+          } else if (containsAny(t, ['к курсор', 'к мыш', 'к указатель', 'тян', 'притяг', 'следуют за курсор'])) {
+            spec.pointerMode = 'attract';
+            scaleSpecValue(spec, 'pointerForce', factor, 0, 6000);
+            notes.push(`pointer = attract (${Math.round(spec.pointerForce)})`);
+          } else if (containsAny(t, ['игнор', 'не реагир'])) {
+            spec.pointerMode = 'none';
+            notes.push('pointer = none');
+          }
+        }
+
+        if (containsAny(t, ['спавн', 'появля', 'создава', 'порожда', 'spawn'])) {
+          scaleSpecValue(spec, 'spawnRate', factor, 0.1, 12);
+          notes.push(`spawn x${factor.toFixed(2)}`);
+        }
+
+        if (containsAny(t, ['время', 'симуляц', 'темп'])) {
+          scaleSpecValue(spec, 'timeScale', factor, 0.1, 4);
+          notes.push(`time x${factor.toFixed(2)}`);
+        }
+
+        if (containsAny(t, ['объект', 'шар', 'круг', 'снаряд', 'физик', 'размер', 'крупн', 'мельч'])) {
+          if (strong && !weak) {
+            scaleSpecValue(spec, 'bodyScale', factor, 0.45, 3);
+            notes.push(`size x${factor.toFixed(2)}`);
+          } else if (weak && !strong) {
+            scaleSpecValue(spec, 'bodyScale', factor, 0.45, 3);
+            notes.push(`size x${factor.toFixed(2)}`);
+          }
+        }
+
+        if (containsAny(t, ['скорост', 'быстр', 'шустр', 'резв'])) {
+          scaleSpecValue(spec, 'speedScale', factor, 0.45, 3);
+          notes.push(`speed x${factor.toFixed(2)}`);
+        }
+
+        if (containsAny(t, ['центр', 'ядр', 'core'])) {
+          if (containsAny(t, ['крепч', 'прочн', 'защит'])) {
+            spec.coreDamage = clamp(spec.coreDamage * (weak ? 1.2 : 0.75), 2, 24);
+            notes.push(`core damage ${spec.coreDamage.toFixed(1)}`);
+          }
+          if (containsAny(t, ['больше', 'крупн', 'увелич'])) {
+            spec.coreRadius = clamp(spec.coreRadius * factor, 22, 72);
+            notes.push(`core radius ${spec.coreRadius.toFixed(0)}`);
+          }
+          if (containsAny(t, ['меньше', 'мельч', 'слаб'])) {
+            spec.coreRadius = clamp(spec.coreRadius * factor, 22, 72);
+            notes.push(`core radius ${spec.coreRadius.toFixed(0)}`);
+          }
+          if (containsAny(t, ['тян', 'притяг', 'приближ'])) {
+            scaleSpecValue(spec, 'corePull', factor, 0, 600);
+            notes.push(`core pull ${Math.round(spec.corePull)}`);
+          }
+        }
+
+        if (containsAny(t, ['взрыв', 'взорв', 'explode'])) {
+          scaleSpecValue(spec, 'explosionRadius', factor, 18, 180);
+          scaleSpecValue(spec, 'explosionImpulse', factor, 40, 1200);
+          notes.push(`boom r=${Math.round(spec.explosionRadius)} p=${Math.round(spec.explosionImpulse)}`);
+        }
+
+        if (containsAny(t, ['стены', 'границ', 'край'])) {
+          if (containsAny(t, ['сквоз', 'проход', 'телепорт', 'wrap'])) {
+            spec.wallMode = 'wrap';
+            notes.push('walls = wrap');
+          } else if (containsAny(t, ['отскок', 'рикошет', 'bounce'])) {
+            spec.wallMode = 'bounce';
+            notes.push('walls = bounce');
+          }
+        }
+
+        if (containsAny(t, ['лимит', 'макс', 'количеств', 'много объектов', 'меньше объектов'])) {
+          scaleSpecValue(spec, 'maxBodies', factor, 10, 220);
+          spec.maxBodies = Math.round(spec.maxBodies);
+          notes.push(`max bodies ${spec.maxBodies}`);
+        }
+
+        if (containsAny(t, ['сверху', 'снизу', 'слева', 'справа', 'по краям', 'из центра'])) {
+          if (containsAny(t, ['сверху'])) {
+            spec.spawnSide = 'top';
+          } else if (containsAny(t, ['снизу'])) {
+            spec.spawnSide = 'bottom';
+          } else if (containsAny(t, ['слева'])) {
+            spec.spawnSide = 'left';
+          } else if (containsAny(t, ['справа'])) {
+            spec.spawnSide = 'right';
+          } else if (containsAny(t, ['из центра'])) {
+            spec.spawnSide = 'center';
+          } else {
+            spec.spawnSide = 'edges';
+          }
+          notes.push(`spawn side ${spec.spawnSide}`);
+        }
+
+        if (!notes.length) {
+          notes.push('not recognized');
+        }
+
+        return notes;
+      }
+
+      function rebuildRuntime() {
+        const previousSpec = state.spec || cloneSpec(defaultSpec);
+        const nextSpec = cloneSpec(defaultSpec);
+
+        for (const entry of state.ruleEntries) {
+          entry.notes = parseInstruction(entry.text, nextSpec);
+        }
+
+        const sizeRatio = nextSpec.bodyScale / previousSpec.bodyScale;
+        const speedRatio = nextSpec.speedScale / previousSpec.speedScale;
+
+        if (state.runtime) {
+          if (sizeRatio !== 1) {
+            for (const body of state.bodies) {
+              body.r = clamp(body.r * sizeRatio, 4, 90);
+              body.mass = Math.max(0.2, body.mass * sizeRatio * sizeRatio);
+            }
+          }
+          if (speedRatio !== 1) {
+            for (const body of state.bodies) {
+              body.vx *= speedRatio;
+              body.vy *= speedRatio;
+            }
+          }
+        }
+
+        state.spec = nextSpec;
+        state.runtime = buildRuntime(nextSpec);
+        state.core.r = nextSpec.coreRadius;
+        state.core.health = clamp(state.core.health, 0, state.core.maxHealth);
+        state.compileCount += 1;
+        state.core.maxHealth = 100;
+        state.gameOver = state.core.health <= 0;
+        renderRuleLog();
+        updateHud();
+        ui.compileStatus.textContent = `Runtime rebuilt via new Function() · compile #${state.compileCount} · gravity ${nextSpec.gravity.toFixed(0)} · mode ${nextSpec.collisionMode} · spawn ${nextSpec.spawnRate.toFixed(2)}/s · pointer ${nextSpec.pointerMode}`;
+      }
+
+      function buildRuntime(spec) {
+        const factory = new Function('helpers', `
+          const clamp = helpers.clamp;
+          const randomRange = helpers.randomRange;
+          const randSign = helpers.randSign;
+          const distance = helpers.distance;
+          const explodeAt = helpers.explodeAt;
+
+          const gravity = ${Number(spec.gravity)};
+          const airDrag = ${Number(spec.airDrag)};
+          const restitution = ${Number(spec.restitution)};
+          const spawnRate = ${Number(spec.spawnRate)};
+          const maxBodies = ${Math.max(1, Math.floor(spec.maxBodies))};
+          const bodyScale = ${Number(spec.bodyScale)};
+          const speedScale = ${Number(spec.speedScale)};
+          const timeScale = ${Number(spec.timeScale)};
+          const pointerMode = ${JSON.stringify(spec.pointerMode)};
+          const pointerForce = ${Number(spec.pointerForce)};
+          const pointerFalloff = ${Number(spec.pointerFalloff)};
+          const corePull = ${Number(spec.corePull)};
+          const collisionMode = ${JSON.stringify(spec.collisionMode)};
+          const wallMode = ${JSON.stringify(spec.wallMode)};
+          const explosionRadius = ${Number(spec.explosionRadius)};
+          const explosionImpulse = ${Number(spec.explosionImpulse)};
+          const coreDamage = ${Number(spec.coreDamage)};
+          const bodyRadiusMin = ${Number(spec.bodyRadiusMin)};
+          const bodyRadiusMax = ${Number(spec.bodyRadiusMax)};
+          const bodySpeedMin = ${Number(spec.bodySpeedMin)};
+          const bodySpeedMax = ${Number(spec.bodySpeedMax)};
+          const spawnSide = ${JSON.stringify(spec.spawnSide)};
+          const coreRadius = ${Number(spec.coreRadius)};
+
+          function spawnBody(world) {
+            const radius = randomRange(bodyRadiusMin, bodyRadiusMax) * bodyScale;
+            const mass = Math.max(0.35, radius * radius * 0.02);
+            let x = 0;
+            let y = 0;
+            let dx = 0;
+            let dy = 0;
+            const side = spawnSide === 'edges' ? ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)] : spawnSide;
+            if (side === 'top') {
+              x = randomRange(radius, world.width - radius);
+              y = -radius;
+              dx = world.core.x - x + randomRange(-40, 40);
+              dy = world.core.y - y;
+            } else if (side === 'bottom') {
+              x = randomRange(radius, world.width - radius);
+              y = world.height + radius;
+              dx = world.core.x - x + randomRange(-40, 40);
+              dy = world.core.y - y;
+            } else if (side === 'left') {
+              x = -radius;
+              y = randomRange(radius, world.height - radius);
+              dx = world.core.x - x;
+              dy = world.core.y - y + randomRange(-40, 40);
+            } else if (side === 'right') {
+              x = world.width + radius;
+              y = randomRange(radius, world.height - radius);
+              dx = world.core.x - x;
+              dy = world.core.y - y + randomRange(-40, 40);
+            } else {
+              const angle = randomRange(0, Math.PI * 2);
+              const dist = randomRange(24, 120);
+              x = world.core.x + Math.cos(angle) * dist;
+              y = world.core.y + Math.sin(angle) * dist;
+              dx = randSign() * randomRange(20, 60);
+              dy = randSign() * randomRange(20, 60);
+            }
+
+            const len = Math.hypot(dx, dy) || 1;
+            const speed = randomRange(bodySpeedMin, bodySpeedMax) * speedScale;
+            return {
+              x: x,
+              y: y,
+              vx: dx / len * speed,
+              vy: dy / len * speed,
+              r: radius,
+              mass: mass,
+              hue: randomRange(12, 210),
+              alive: true,
+              age: 0,
+            };
+          }
+
+          function updateBody(body, world, dt) {
+            const step = dt * timeScale;
+            body.age += step;
+            body.vy += gravity * step;
+
+            if (corePull > 0) {
+              const dxCore = world.core.x - body.x;
+              const dyCore = world.core.y - body.y;
+              const distCore = Math.hypot(dxCore, dyCore) || 1;
+              const pull = corePull * step * (1 + body.r * 0.015);
+              body.vx += dxCore / distCore * pull;
+              body.vy += dyCore / distCore * pull;
+            }
+
+            if (pointerMode !== 'none' && world.pointer.active) {
+              const dxPointer = world.pointer.x - body.x;
+              const dyPointer = world.pointer.y - body.y;
+              const distPointer = Math.hypot(dxPointer, dyPointer) || 1;
+              const influence = 1 / (1 + distPointer / pointerFalloff);
+              const pointerStep = pointerForce * step * influence * (world.pointer.down ? 1.4 : 0.75);
+              const direction = pointerMode === 'repel' ? -1 : 1;
+              body.vx += dxPointer / distPointer * pointerStep * direction;
+              body.vy += dyPointer / distPointer * pointerStep * direction;
+            }
+
+            const drag = Math.pow(airDrag, step * 60);
+            body.vx *= drag;
+            body.vy *= drag;
+
+            const maxSpeed = Math.max(360, bodySpeedMax * speedScale * 3.2);
+            const speed = Math.hypot(body.vx, body.vy);
+            if (speed > maxSpeed) {
+              const scale = maxSpeed / speed;
+              body.vx *= scale;
+              body.vy *= scale;
+            }
+
+            body.x += body.vx * step;
+            body.y += body.vy * step;
+
+            if (wallMode === 'wrap') {
+              if (body.x < -body.r) body.x = world.width + body.r;
+              if (body.x > world.width + body.r) body.x = -body.r;
+              if (body.y < -body.r) body.y = world.height + body.r;
+              if (body.y > world.height + body.r) body.y = -body.r;
+            } else {
+              if (body.x < body.r) {
+                body.x = body.r;
+                body.vx = Math.abs(body.vx) * restitution;
+                body.vy += randSign() * 8;
+              }
+              if (body.x > world.width - body.r) {
+                body.x = world.width - body.r;
+                body.vx = -Math.abs(body.vx) * restitution;
+                body.vy += randSign() * 8;
+              }
+              if (body.y < body.r) {
+                body.y = body.r;
+                body.vy = Math.abs(body.vy) * restitution;
+                body.vx += randSign() * 8;
+              }
+              if (body.y > world.height - body.r) {
+                body.y = world.height - body.r;
+                body.vy = -Math.abs(body.vy) * restitution;
+                body.vx += randSign() * 8;
+              }
+            }
+          }
+
+          function resolvePair(a, b, world) {
+            if (!a.alive || !b.alive) return false;
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const minDist = a.r + b.r;
+            const distSq = dx * dx + dy * dy;
+            if (distSq >= minDist * minDist || distSq === 0) return false;
+            const dist = Math.sqrt(distSq);
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = minDist - dist;
+
+            if (collisionMode === 'explode') {
+              a.alive = false;
+              b.alive = false;
+              world.destroyed += 2;
+              explodeAt(world, (a.x + b.x) * 0.5, (a.y + b.y) * 0.5, explosionRadius + minDist * 0.35, explosionImpulse, (a.hue + b.hue) * 0.5, a.mass + b.mass);
+              return true;
+            }
+
+            if (collisionMode === 'merge') {
+              const big = a.mass >= b.mass ? a : b;
+              const small = big === a ? b : a;
+              const totalMass = big.mass + small.mass;
+              big.vx = (big.vx * big.mass + small.vx * small.mass) / totalMass;
+              big.vy = (big.vy * big.mass + small.vy * small.mass) / totalMass;
+              big.mass = totalMass;
+              big.r = clamp(Math.sqrt(totalMass * 1.2), 5, 48);
+              big.hue = (big.hue * 0.72 + small.hue * 0.28) % 360;
+              small.alive = false;
+              world.destroyed += 1;
+              world.score += 5;
+              return true;
+            }
+
+            const totalMass = a.mass + b.mass;
+            a.x -= nx * overlap * (b.mass / totalMass);
+            a.y -= ny * overlap * (b.mass / totalMass);
+            b.x += nx * overlap * (a.mass / totalMass);
+            b.y += ny * overlap * (a.mass / totalMass);
+
+            const rvx = b.vx - a.vx;
+            const rvy = b.vy - a.vy;
+            const velAlongNormal = rvx * nx + rvy * ny;
+            if (velAlongNormal > 0) return true;
+
+            const impulse = -(1 + restitution) * velAlongNormal / (1 / a.mass + 1 / b.mass);
+            const ix = impulse * nx;
+            const iy = impulse * ny;
+            a.vx -= ix / a.mass;
+            a.vy -= iy / a.mass;
+            b.vx += ix / b.mass;
+            b.vy += iy / b.mass;
+            world.score += 0.15;
+            return true;
+          }
+
+          function resolveCore(body, world) {
+            if (!body.alive) return false;
+            const dx = body.x - world.core.x;
+            const dy = body.y - world.core.y;
+            const minDist = body.r + coreRadius;
+            const distSq = dx * dx + dy * dy;
+            if (distSq >= minDist * minDist || distSq === 0) return false;
+            const dist = Math.sqrt(distSq);
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = minDist - dist;
+            const speed = Math.hypot(body.vx, body.vy);
+
+            if (collisionMode === 'explode') {
+              body.alive = false;
+              world.destroyed += 1;
+              explodeAt(world, body.x, body.y, explosionRadius * 0.9, explosionImpulse * 0.9, body.hue, body.mass);
+              world.core.health -= Math.max(2, body.mass * coreDamage * 0.35 + speed * 0.004);
+              return true;
+            }
+
+            body.x += nx * overlap;
+            body.y += ny * overlap;
+            const vn = body.vx * nx + body.vy * ny;
+            if (vn < 0) {
+              body.vx -= (1 + restitution) * vn * nx;
+              body.vy -= (1 + restitution) * vn * ny;
+            }
+            body.vx += nx * 12;
+            body.vy += ny * 12;
+            world.core.health -= Math.max(1, body.mass * coreDamage * (0.35 + speed * 0.002));
+            world.score += 0.35;
+            return true;
+          }
+
+          return {
+            spawnBody: spawnBody,
+            updateBody: updateBody,
+            resolvePair: resolvePair,
+            resolveCore: resolveCore,
+            spec: ${JSON.stringify(spec)}
+          };
+        `);
+        return factory({ clamp, randomRange: randRange, randSign, distance, explodeAt });
+      }
+
+      function explodeAt(world, x, y, radius, impulse, hue, sourceMass) {
+        const particleCount = Math.max(10, Math.round(10 + sourceMass * 0.35));
+        for (let i = 0; i < particleCount; i += 1) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = randRange(80, 250) + impulse * 0.55;
+          world.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed + randSign() * 20,
+            vy: Math.sin(angle) * speed + randSign() * 20,
+            r: randRange(1.5, 3.8),
+            life: randRange(0.35, 0.9),
+            hue: hue + randRange(-10, 12),
+          });
+        }
+
+        let chain = 0;
+        for (const body of world.bodies) {
+          if (!body.alive) continue;
+          const dx = body.x - x;
+          const dy = body.y - y;
+          const dist = Math.hypot(dx, dy) || 1;
+          if (dist > radius) continue;
+          const t = 1 - dist / radius;
+          const kick = (impulse * t) / Math.max(0.7, body.mass);
+          body.vx += dx / dist * kick;
+          body.vy += dy / dist * kick - t * 8;
+          if (t > 0.8) {
+            body.alive = false;
+            chain += 1;
+          }
+        }
+
+        const coreDist = distance(x, y, world.core.x, world.core.y);
+        if (coreDist < radius) {
+          world.core.health -= (1 - coreDist / radius) * sourceMass * 0.18;
+        }
+
+        world.score += 6 + particleCount * 0.25 + chain * 3;
+        world.destroyed += chain;
+        world.flash = Math.max(world.flash, 0.65);
+      }
+
+      function renderRuleLog() {
+        if (!state.ruleEntries.length) {
+          ui.ruleLog.innerHTML = `
+            <div class="rule-item">
+              <div class="source">Пока нет правил. Добавь первое правило в поле выше.</div>
+              <div class="notes">Игра стартует на default spec и ждёт новых команд.</div>
+            </div>
+          `;
+          return;
+        }
+
+        ui.ruleLog.innerHTML = state.ruleEntries.map((entry, index) => {
+          const notes = entry.notes && entry.notes.length ? entry.notes.join(' · ') : 'not recognized';
+          return `
+            <div class="rule-item">
+              <div class="source">${index + 1}. ${escapeHtml(entry.text)}</div>
+              <div class="notes">${escapeHtml(notes)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function escapeHtml(value) {
+        return value
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function updateHud() {
+        ui.scoreValue.textContent = Math.floor(state.score).toLocaleString('ru-RU');
+        ui.coreValue.textContent = `${Math.max(0, Math.ceil(state.core.health))}`;
+        ui.bodyValue.textContent = `${state.bodies.length}`;
+        ui.particleValue.textContent = `${state.particles.length}`;
+        ui.modeValue.textContent = state.spec.collisionMode;
+        ui.timeValue.textContent = `${state.spec.timeScale.toFixed(2)}x`;
+      }
+
+      function resetWorld(keepRules = true) {
+        state.running = true;
+        state.gameOver = false;
+        state.time = 0;
+        state.score = 0;
+        state.destroyed = 0;
+        state.flash = 0;
+        state.spawnAccumulator = 0;
+        state.bodies = [];
+        state.particles = [];
+        state.core.x = state.width * 0.5;
+        state.core.y = state.height * 0.5;
+        state.core.r = state.spec.coreRadius;
+        state.core.maxHealth = 100;
+        state.core.health = 100;
+        ui.gameOver.classList.add('hidden');
+        if (!keepRules) {
+          state.ruleEntries = [];
+        }
+        state.runtime = state.runtime || buildRuntime(state.spec);
+        for (let i = 0; i < 16; i += 1) {
+          state.bodies.push(state.runtime.spawnBody(state));
+        }
+        rebuildRuntime();
+        updateHud();
+      }
+
+      function compileRuleText(text) {
+        const chunks = text
+          .split(/\n+/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        if (!chunks.length) {
+          return;
+        }
+        for (const chunk of chunks) {
+          state.ruleEntries.push({ text: chunk, notes: [] });
+        }
+        rebuildRuntime();
+      }
+
+      function removeLastRule() {
+        if (!state.ruleEntries.length) {
+          return;
+        }
+        state.ruleEntries.pop();
+        rebuildRuntime();
+      }
+
+      function clearRules() {
+        state.ruleEntries.length = 0;
+        rebuildRuntime();
+      }
+
+      function resizeCanvas() {
+        state.dpr = Math.max(1, window.devicePixelRatio || 1);
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        canvas.width = Math.round(state.width * state.dpr);
+        canvas.height = Math.round(state.height * state.dpr);
+        canvas.style.width = `${state.width}px`;
+        canvas.style.height = `${state.height}px`;
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        state.core.x = state.width * 0.5;
+        state.core.y = state.height * 0.5;
+        for (const body of state.bodies) {
+          body.x = clamp(body.x, body.r, Math.max(body.r, state.width - body.r));
+          body.y = clamp(body.y, body.r, Math.max(body.r, state.height - body.r));
+        }
+      }
+
+      function tick(dt) {
+        if (!state.runtime) {
+          return;
+        }
+
+        const scaledDt = dt * state.spec.timeScale;
+        state.flash = Math.max(0, state.flash - dt * 1.4);
+
+        if (!state.gameOver && state.running) {
+          state.time += scaledDt;
+          state.score += scaledDt * 5;
+          state.spawnAccumulator += state.runtime.spec.spawnRate * scaledDt;
+          while (state.spawnAccumulator >= 1 && state.bodies.length < state.runtime.spec.maxBodies) {
+            state.spawnAccumulator -= 1;
+            state.bodies.push(state.runtime.spawnBody(state));
+          }
+
+          for (const body of state.bodies) {
+            state.runtime.updateBody(body, state, dt);
+          }
+
+          for (let i = 0; i < state.bodies.length; i += 1) {
+            const a = state.bodies[i];
+            if (!a.alive) continue;
+            for (let j = i + 1; j < state.bodies.length; j += 1) {
+              const b = state.bodies[j];
+              if (!b.alive) continue;
+              state.runtime.resolvePair(a, b, state);
+            }
+          }
+
+          for (const body of state.bodies) {
+            if (body.alive) {
+              state.runtime.resolveCore(body, state);
+            }
+          }
+
+          state.bodies = state.bodies.filter((body) => body.alive);
+          state.bodies = state.bodies.slice(0, state.runtime.spec.maxBodies);
+
+          for (let i = state.particles.length - 1; i >= 0; i -= 1) {
+            const p = state.particles[i];
+            p.life -= scaledDt;
+            p.x += p.vx * scaledDt;
+            p.y += p.vy * scaledDt;
+            p.vx *= 0.985;
+            p.vy = p.vy * 0.985 + 90 * scaledDt;
+            if (p.life <= 0) {
+              state.particles.splice(i, 1);
+            }
+          }
+
+          if (state.core.health <= 0) {
+            state.core.health = 0;
+            state.gameOver = true;
+            state.running = false;
+            state.bestScore = Math.max(state.bestScore, state.score);
+            ui.gameOver.classList.remove('hidden');
+          }
+
+          state.bestScore = Math.max(state.bestScore, state.score);
+        }
+
+        updateHud();
+      }
+
+      function drawBackground() {
+        const grad = ctx.createLinearGradient(0, 0, 0, state.height);
+        grad.addColorStop(0, '#08111b');
+        grad.addColorStop(0.55, '#08121a');
+        grad.addColorStop(1, '#040910');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = 'rgba(255, 191, 105, 0.09)';
+        ctx.beginPath();
+        ctx.arc(state.width * 0.18, state.height * 0.2, Math.min(state.width, state.height) * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(116, 215, 255, 0.08)';
+        ctx.beginPath();
+        ctx.arc(state.width * 0.82, state.height * 0.18, Math.min(state.width, state.height) * 0.32, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= state.width; x += 54) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, state.height);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= state.height; y += 54) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(state.width, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (const p of state.particles) {
+          const alpha = clamp(p.life / 0.9, 0, 1);
+          ctx.globalAlpha = alpha;
+          ctx.shadowColor = `hsla(${p.hue}, 95%, 68%, ${alpha})`;
+          ctx.shadowBlur = 16;
+          ctx.fillStyle = `hsla(${p.hue}, 95%, 66%, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawCore() {
+        const healthRatio = clamp(state.core.health / state.core.maxHealth, 0, 1);
+        ctx.save();
+        ctx.translate(state.core.x, state.core.y);
+        ctx.shadowColor = `rgba(116, 215, 255, ${0.35 + healthRatio * 0.35})`;
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = '#5be1ff';
+        ctx.beginPath();
+        ctx.arc(0, 0, state.core.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+        ctx.beginPath();
+        ctx.arc(0, 0, state.core.r + 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = `hsla(168, 95%, 62%, ${healthRatio})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, 0, state.core.r + 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * healthRatio);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawBodies() {
+        for (const body of state.bodies) {
+          const speed = Math.hypot(body.vx, body.vy);
+          const glow = clamp(speed / 320, 0.2, 1);
+          ctx.save();
+          ctx.translate(body.x, body.y);
+          ctx.shadowColor = `hsla(${body.hue}, 95%, 65%, ${0.45 + glow * 0.2})`;
+          ctx.shadowBlur = 18;
+          ctx.fillStyle = `hsla(${body.hue}, 90%, ${58 + glow * 8}%, 0.96)`;
+          ctx.beginPath();
+          ctx.arc(0, 0, body.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(255,255,255,0.25)';
+          ctx.beginPath();
+          ctx.arc(-body.r * 0.25, -body.r * 0.25, Math.max(1.8, body.r * 0.22), 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(0, 0, body.r + 2, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawPointerField() {
+        if (state.spec.pointerMode === 'none' || !state.pointer.active) {
+          return;
+        }
+        const radius = state.spec.pointerFalloff;
+        const color = state.spec.pointerMode === 'repel' ? 'rgba(255,127,143,0.35)' : 'rgba(133,239,192,0.35)';
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.arc(state.pointer.x, state.pointer.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 0.08;
+        ctx.beginPath();
+        ctx.arc(state.pointer.x, state.pointer.y, radius * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawFlash() {
+        if (state.flash <= 0) {
+          return;
+        }
+        ctx.save();
+        ctx.globalAlpha = state.flash * 0.16;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, state.width, state.height);
+        ctx.restore();
+      }
+
+      function render() {
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        drawBackground();
+        drawFlash();
+        drawPointerField();
+        drawParticles();
+        drawBodies();
+        drawCore();
+      }
+
+      function animate(ts) {
+        if (!state.lastTs) {
+          state.lastTs = ts;
+        }
+        const dt = Math.min(0.05, (ts - state.lastTs) / 1000);
+        state.lastTs = ts;
+        tick(dt);
+        render();
+        requestAnimationFrame(animate);
+      }
+
+      function applyDraft() {
+        const draft = ui.ruleInput.value.trim();
+        if (!draft) {
+          return;
+        }
+        const lines = draft.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+        for (const line of lines) {
+          state.ruleEntries.push({ text: line, notes: [] });
+        }
+        ui.ruleInput.value = '';
+        rebuildRuntime();
+      }
+
+      function setRuleFromExample(text) {
+        ui.ruleInput.value = text;
+        applyDraft();
+        ui.ruleInput.focus();
+      }
+
+      ui.applyBtn.addEventListener('click', applyDraft);
+      ui.undoBtn.addEventListener('click', () => {
+        removeLastRule();
+      });
+      ui.clearRulesBtn.addEventListener('click', () => {
+        clearRules();
+      });
+      ui.resetWorldBtn.addEventListener('click', () => {
+        resetWorld(true);
+      });
+
+      ui.ruleInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          applyDraft();
+        }
+      });
+
+      ui.examples.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-rule]');
+        if (!button) {
+          return;
+        }
+        setRuleFromExample(button.dataset.rule);
+      });
+
+      canvas.addEventListener('pointermove', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        state.pointer.x = event.clientX - rect.left;
+        state.pointer.y = event.clientY - rect.top;
+        state.pointer.active = true;
+      });
+
+      canvas.addEventListener('pointerdown', (event) => {
+        state.pointer.down = true;
+        state.pointer.active = true;
+        canvas.setPointerCapture(event.pointerId);
+      });
+
+      canvas.addEventListener('pointerup', (event) => {
+        state.pointer.down = false;
+        try {
+          canvas.releasePointerCapture(event.pointerId);
+        } catch (_) {
+        }
+      });
+
+      canvas.addEventListener('pointerleave', () => {
+        state.pointer.active = false;
+        state.pointer.down = false;
+      });
+
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        rebuildRuntime();
+      });
+
+      function init() {
+        resizeCanvas();
+        resetWorld(true);
+        renderRuleLog();
+        ui.ruleInput.focus();
+        requestAnimationFrame(animate);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

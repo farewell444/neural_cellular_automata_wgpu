@@ -1,0 +1,23 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Python training artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Optional generated weights
+# Uncomment if you do not want to version binary weights
+# /assets/*.bin
