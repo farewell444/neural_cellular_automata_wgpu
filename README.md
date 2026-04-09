@@ -1,9 +1,11 @@
-# Trainable Neural Cellular Automata Engine (Rust + WGPU)
+# CellForge Engine (Rust + WGPU)
 
-High-performance NCA runtime with a trainable weight pipeline:
+High-performance CellForge runtime with a trainable weight pipeline:
 - real-time GPU simulation via WGPU compute shader
 - interactive destruction with mouse and self-repair behavior
 - offline training script (PyTorch) with binary export to Rust runtime
+
+The runtime package is named `cellforge_engine`, while the native C ABI and shared-library target stay on the legacy `nca_engine` namespace for compatibility.
 
 ## Why this architecture is the best for speed and stability
 
@@ -11,7 +13,7 @@ High-performance NCA runtime with a trainable weight pipeline:
 - training uses mature autodiff stack (PyTorch)
 - runtime stays lean and fast in Rust/WGPU
 
-2. Stable NCA update rule:
+2. Stable CellForge update rule:
 - residual update with bounded delta
 - stochastic fire-rate gating
 - alive mask and decay for dead zones
@@ -24,14 +26,14 @@ High-performance NCA runtime with a trainable weight pipeline:
 ## Project layout
 
 - `src/main.rs` - runtime, window loop, WGPU pipelines, interaction
-- `src/compute.wgsl` - NCA update rule on GPU
+- `src/compute.wgsl` - CellForge update rule on GPU
 - `src/render.wgsl` - fullscreen visualization
 - `src/model.rs` - trainable weight format loader/saver
 - `tools/train_nca.py` - offline trainer and weight exporter
 
 ## Runtime usage
 
-Run with default path (`assets/nca_weights.bin`) or fallback seeded weights:
+Run with `CELLFORGE_WEIGHTS` (legacy alias: `NCA_WEIGHTS`) or fallback seeded weights at `assets/nca_weights.bin`:
 
 ```bash
 cargo run --release
@@ -94,6 +96,8 @@ Generated artifacts (Windows):
 - `target/release/nca_engine.dll`
 - `target/release/nca_engine.lib`
 
+These artifact names stay unchanged so existing C/C++ and UE integrations continue to load the same binary names.
+
 Primary C header:
 
 - `ffi/include/nca_engine.h`
@@ -124,6 +128,8 @@ The FFI uses an opaque pointer model:
 3. `nca_engine_destroy` is the only valid deallocation path.
 4. Internal mutable state is synchronized with `Mutex` for thread-safe host calls.
 5. Error text stays owned by Rust; host copies it via `nca_engine_copy_last_error`.
+
+The function names stay under the `nca_engine_*` compatibility namespace by design.
 
 This model avoids cross-language allocator mismatch and prevents UAF/double-free when API contract is respected.
 

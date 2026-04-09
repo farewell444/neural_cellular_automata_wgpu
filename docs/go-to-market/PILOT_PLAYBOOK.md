@@ -1,7 +1,7 @@
-# Pilot Playbook
+# CellForge Pilot Playbook
 
 ## Pilot Goal
-Prove that the NCA SDK provides production value quickly with low integration risk.
+Prove that the CellForge SDK provides production value quickly with low integration risk.
 
 ## Ideal Pilot Profile
 - UE5 project already in active development
@@ -11,7 +11,7 @@ Prove that the NCA SDK provides production value quickly with low integration ri
 ## Pilot Scope (Recommended)
 - duration: 2 to 4 weeks
 - one map or one gameplay feature
-- one to two NCA presets
+- one to two CellForge presets
 - one quality profile target
 
 ## Pilot Success Metrics

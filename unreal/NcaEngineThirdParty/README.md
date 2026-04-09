@@ -1,6 +1,8 @@
-# Unreal Engine ThirdParty Integration (Sample)
+# CellForge Unreal ThirdParty Integration (Sample)
 
-This folder contains a minimal UE5 ThirdParty bridge for the Rust NCA engine.
+This folder contains a minimal UE5 ThirdParty bridge for CellForge Engine.
+
+The sample still links the legacy `nca_engine` library/header names so it stays compatible with existing integrations.
 
 ## Expected layout
 

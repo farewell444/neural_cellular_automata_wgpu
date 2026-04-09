@@ -74,6 +74,18 @@ NCA_API NcaStatus nca_engine_load_weights_from_memory(
   size_t data_len
 );
 
+/*
+Host-owned state upload path.
+- `data` is owned by the host application.
+- Rust reads it only during the call and never stores the pointer.
+- `value_count` must be grid_width * grid_height * STATE_DIM.
+*/
+NCA_API NcaStatus nca_engine_upload_state_f32(
+  NcaEngine* engine,
+  const float* data,
+  size_t value_count
+);
+
 NCA_API NcaStatus nca_engine_inject_damage(NcaEngine* engine, const NcaBrushEvent* brush_event);
 NCA_API NcaStatus nca_engine_inject_growth(NcaEngine* engine, const NcaBrushEvent* brush_event);
 

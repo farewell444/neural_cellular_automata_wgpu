@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Offline trainer for the Rust/WGPU Neural Cellular Automata runtime.
+Offline trainer for the Rust/WGPU CellForge runtime.
 
 Exports weights in a binary format consumed by src/model.rs:
 - magic: 4 bytes: NCA1
@@ -235,7 +235,7 @@ def train(cfg: TrainConfig, output_path: str, seed: int) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train NCA weights for Rust/WGPU runtime")
+    parser = argparse.ArgumentParser(description="Train CellForge weights for Rust/WGPU runtime")
     parser.add_argument("--output", default="assets/nca_weights.bin", help="Output weights file")
     parser.add_argument("--epochs", type=int, default=1200)
     parser.add_argument("--width", type=int, default=128)

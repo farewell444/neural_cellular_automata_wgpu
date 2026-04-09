@@ -22,12 +22,12 @@ impl NetworkParameters {
     pub fn load_or_default(path: &Path) -> Self {
         match Self::load(path) {
             Ok(weights) => {
-                log::info!("loaded NCA weights from {}", path.display());
+                log::info!("loaded CellForge weights from {}", path.display());
                 weights
             }
             Err(err) => {
                 log::warn!(
-                    "failed to load NCA weights from {}: {}. falling back to seeded defaults",
+                    "failed to load CellForge weights from {}: {}. falling back to seeded defaults",
                     path.display(),
                     err
                 );

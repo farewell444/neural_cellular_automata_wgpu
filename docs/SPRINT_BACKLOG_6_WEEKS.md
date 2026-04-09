@@ -1,4 +1,4 @@
-# Sprint Backlog (6 Weeks)
+# CellForge Sprint Backlog (6 Weeks)
 
 ## Sprint 1: API and Reliability Baseline
 - [ ] Lock C-API signatures for v1 baseline

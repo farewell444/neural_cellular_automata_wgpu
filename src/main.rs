@@ -46,7 +46,8 @@ struct RuntimeConfig {
 impl RuntimeConfig {
     fn parse() -> Self {
         let mut weights_path = PathBuf::from(
-            std::env::var("NCA_WEIGHTS")
+            std::env::var("CELLFORGE_WEIGHTS")
+                .or_else(|_| std::env::var("NCA_WEIGHTS"))
                 .unwrap_or_else(|_| "assets/nca_weights.bin".to_owned()),
         );
         let mut export_default_weights = None;
@@ -105,7 +106,7 @@ impl RuntimeConfig {
 
 fn print_usage() {
     println!(
-        "Usage:\n  cargo run --release -- [OPTIONS]\n\nOptions:\n  --weights <PATH>                 Load trainable NCA weights from a .bin file\n  --export-default-weights [PATH]  Export seeded baseline weights and exit\n  --steps <N>                      Compute updates per frame (1..={MAX_STEPS_PER_FRAME})\n  -h, --help                       Show this message\n\nEnv:\n  NCA_WEIGHTS                      Default path for --weights (fallback: assets/nca_weights.bin)"
+        "Usage:\n  cargo run --release -- [OPTIONS]\n\nOptions:\n  --weights <PATH>                 Load CellForge weights from a .bin file\n  --export-default-weights [PATH]  Export seeded baseline weights and exit\n  --steps <N>                      Compute updates per frame (1..={MAX_STEPS_PER_FRAME})\n  -h, --help                       Show this message\n\nEnv:\n  CELLFORGE_WEIGHTS                Preferred default path for --weights\n  NCA_WEIGHTS                      Legacy alias for CELLFORGE_WEIGHTS (fallback: assets/nca_weights.bin)"
     );
 }
 
@@ -206,7 +207,7 @@ impl App {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
-                    label: Some("NCA Device"),
+                    label: Some("CellForge Device"),
                     required_features: wgpu::Features::empty(),
                     required_limits: wgpu::Limits::default(),
                     memory_hints: wgpu::MemoryHints::Performance,
@@ -531,12 +532,12 @@ impl App {
         });
 
         let compute_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("NCA Compute Shader"),
+            label: Some("CellForge Compute Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("compute.wgsl").into()),
         });
 
         let render_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("NCA Render Shader"),
+            label: Some("CellForge Render Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("render.wgsl").into()),
         });
 
@@ -555,7 +556,7 @@ impl App {
             });
 
         let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("NCA Compute Pipeline"),
+            label: Some("CellForge Compute Pipeline"),
             layout: Some(&compute_pipeline_layout),
             module: &compute_shader,
             entry_point: "nca_step",
@@ -564,7 +565,7 @@ impl App {
         });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("NCA Render Pipeline"),
+            label: Some("CellForge Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &render_shader,
@@ -659,7 +660,7 @@ impl App {
         let mut encoder =
             self.device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("NCA Command Encoder"),
+                    label: Some("CellForge Command Encoder"),
                 });
 
         let dispatch_x = GRID_WIDTH.div_ceil(WORKGROUP_SIZE);
@@ -668,7 +669,7 @@ impl App {
         for _ in 0..self.steps_per_frame {
             {
                 let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: Some("NCA Compute Pass"),
+                    label: Some("CellForge Compute Pass"),
                     timestamp_writes: None,
                 });
                 pass.set_pipeline(&self.compute_pipeline);
@@ -680,7 +681,7 @@ impl App {
 
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("NCA Render Pass"),
+                label: Some("CellForge Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -719,7 +720,7 @@ fn main() {
         let defaults = NetworkParameters::default_seeded();
         match defaults.save(&path) {
             Ok(()) => {
-                println!("Exported baseline NCA weights to {}", path.display());
+                println!("Exported baseline CellForge weights to {}", path.display());
                 return;
             }
             Err(err) => {
@@ -731,7 +732,7 @@ fn main() {
     let network = NetworkParameters::load_or_default(&runtime.weights_path);
 
     log::info!(
-        "starting NCA runtime | weights: {} | steps/frame: {}",
+        "starting CellForge runtime | weights: {} | steps/frame: {}",
         runtime.weights_path.display(),
         runtime.steps_per_frame
     );
@@ -739,7 +740,7 @@ fn main() {
     let event_loop = EventLoop::new().expect("failed to create event loop");
     let window = Arc::new(
         WindowBuilder::new()
-            .with_title("Neural Cellular Automata · WGPU")
+            .with_title("CellForge Engine · WGPU")
             .with_inner_size(PhysicalSize::new(1200, 800))
             .with_resizable(true)
             .build(&event_loop)

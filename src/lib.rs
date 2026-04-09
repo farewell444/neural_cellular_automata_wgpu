@@ -1,6 +1,6 @@
 mod model;
 
-// C-FFI SDK entry point for the Neural Cellular Automata engine.
+// C-FFI SDK entry point for the CellForge engine.
 //
 // Design goals:
 // - Opaque engine handles for safe cross-language ownership.
@@ -137,7 +137,7 @@ struct InternalWindow {
 #[cfg(windows)]
 impl InternalWindow {
     fn create(width: u32, height: u32) -> Result<Self, String> {
-        let title = wide_null("Neural Cellular Automata SDK");
+        let title = wide_null("CellForge Engine SDK");
         let class = wide_null("STATIC");
         let hinstance = unsafe { GetModuleHandleW(ptr::null()) } as isize;
 
@@ -198,7 +198,7 @@ struct EngineCore {
     render_pipeline: Option<wgpu::RenderPipeline>,
     compute_bind_groups: [wgpu::BindGroup; 2],
     render_bind_groups: [wgpu::BindGroup; 2],
-    _state_buffers: [wgpu::Buffer; 2],
+    state_buffers: [wgpu::Buffer; 2],
     w1_buffer: wgpu::Buffer,
     b1_buffer: wgpu::Buffer,
     w2_buffer: wgpu::Buffer,
@@ -280,7 +280,7 @@ impl EngineCore {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
-                    label: Some("NCA FFI Device"),
+                    label: Some("CellForge FFI Device"),
                     required_features: wgpu::Features::empty(),
                     required_limits: wgpu::Limits::default(),
                     memory_hints: wgpu::MemoryHints::Performance,
@@ -546,12 +546,12 @@ impl EngineCore {
         });
 
         let compute_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("NCA Compute Shader"),
+            label: Some("CellForge Compute Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("compute.wgsl").into()),
         });
 
         let render_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("NCA Render Shader"),
+            label: Some("CellForge Render Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("render.wgsl").into()),
         });
 
@@ -570,7 +570,7 @@ impl EngineCore {
             });
 
         let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("FFI NCA Compute Pipeline"),
+            label: Some("CellForge FFI Compute Pipeline"),
             layout: Some(&compute_pipeline_layout),
             module: &compute_shader,
             entry_point: "nca_step",
@@ -580,7 +580,7 @@ impl EngineCore {
 
         let render_pipeline = render_format.map(|format| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("FFI NCA Render Pipeline"),
+                label: Some("CellForge FFI Render Pipeline"),
                 layout: Some(&render_pipeline_layout),
                 vertex: wgpu::VertexState {
                     module: &render_shader,
@@ -617,7 +617,7 @@ impl EngineCore {
             render_pipeline,
             compute_bind_groups: [compute_bind_group_0, compute_bind_group_1],
             render_bind_groups: [render_bind_group_a, render_bind_group_b],
-            _state_buffers: [state_a, state_b],
+            state_buffers: [state_a, state_b],
             w1_buffer,
             b1_buffer,
             w2_buffer,
@@ -670,6 +670,27 @@ impl EngineCore {
         Ok(())
     }
 
+    fn upload_state_from_f32(&mut self, state_values: &[f32]) -> Result<(), (NcaStatus, String)> {
+        let expected_values = (self.grid_width as usize) * (self.grid_height as usize) * STATE_DIM;
+        if state_values.len() != expected_values {
+            return Err((
+                NcaStatus::InvalidArgument,
+                format!(
+                    "state value count mismatch: got {}, expected {}",
+                    state_values.len(),
+                    expected_values
+                ),
+            ));
+        }
+
+        let state_bytes = bytemuck::cast_slice(state_values);
+        self.queue
+            .write_buffer(&self.state_buffers[0], 0, state_bytes);
+        self.queue
+            .write_buffer(&self.state_buffers[1], 0, state_bytes);
+        Ok(())
+    }
+
     fn update(&mut self, delta_seconds: f32) -> Result<(), (NcaStatus, String)> {
         #[cfg(windows)]
         self.pump_internal_window_messages();
@@ -690,13 +711,13 @@ impl EngineCore {
         let mut encoder =
             self.device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("FFI NCA Compute Encoder"),
+                    label: Some("CellForge FFI Compute Encoder"),
                 });
 
         for _ in 0..self.steps_per_frame {
             {
                 let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: Some("FFI NCA Compute Pass"),
+                    label: Some("CellForge FFI Compute Pass"),
                     timestamp_writes: None,
                 });
                 pass.set_pipeline(&self.compute_pipeline);
@@ -756,12 +777,12 @@ impl EngineCore {
         let mut encoder =
             self.device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("FFI NCA Render Encoder"),
+                    label: Some("CellForge FFI Render Encoder"),
                 });
 
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("FFI NCA Render Pass"),
+                label: Some("CellForge FFI Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -1546,6 +1567,63 @@ pub extern "C" fn nca_engine_load_weights_from_memory(
     match core.load_weights_from_bytes(bytes) {
         Ok(()) => NcaStatus::Ok,
         Err((status, message)) => handle.set_error(status, message),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn nca_engine_upload_state_f32(
+    engine: *mut NcaEngineOpaque,
+    data: *const f32,
+    value_count: usize,
+) -> NcaStatus {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let handle = {
+            // SAFETY: the opaque pointer comes from nca_engine_create and is validated by get_handle.
+            match unsafe { get_handle(engine) } {
+                Ok(handle) => handle,
+                Err(status) => return status,
+            }
+        };
+
+        handle.clear_error();
+
+        if data.is_null() {
+            return handle.set_error(NcaStatus::NullPointer, "state data pointer is null");
+        }
+        if value_count == 0 {
+            return handle.set_error(
+                NcaStatus::InvalidArgument,
+                "state value_count must be greater than zero",
+            );
+        }
+
+        // Ownership model: host owns the source memory; Rust only reads it during this call.
+        // SAFETY: caller guarantees `data` points to `value_count` contiguous f32 values valid
+        // for the duration of this function call.
+        let state_values = unsafe { std::slice::from_raw_parts(data, value_count) };
+
+        let mut core = match handle.core.lock() {
+            Ok(core) => core,
+            Err(_) => return handle.set_error(NcaStatus::RuntimeError, "engine lock poisoned"),
+        };
+
+        match core.upload_state_from_f32(state_values) {
+            Ok(()) => NcaStatus::Ok,
+            Err((status, message)) => handle.set_error(status, message),
+        }
+    }));
+
+    match result {
+        Ok(status) => status,
+        Err(_) => {
+            if !engine.is_null() {
+                // SAFETY: pointer is checked for null and then validated by get_handle.
+                if let Ok(handle) = unsafe { get_handle(engine) } {
+                    return handle.set_error(NcaStatus::RuntimeError, "panic in nca_engine_upload_state_f32");
+                }
+            }
+            NcaStatus::RuntimeError
+        }
     }
 }
 

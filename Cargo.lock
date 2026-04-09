@@ -282,6 +282,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "cellforge_engine"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "env_logger",
+ "log",
+ "notify",
+ "pollster",
+ "raw-window-handle",
+ "rayon",
+ "wgpu",
+ "windows-sys 0.59.0",
+ "winit",
+]
+
+[[package]]
 name = "cesu8"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1097,22 +1113,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c196769dd60fd4f363e11d948139556a344e79d451aeb2fa2fd040738ef7691"
 dependencies = [
  "jni-sys 0.3.1",
-]
-
-[[package]]
-name = "neural_cellular_automata_wgpu"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "env_logger",
- "log",
- "notify",
- "pollster",
- "raw-window-handle",
- "rayon",
- "wgpu",
- "windows-sys 0.59.0",
- "winit",
 ]
 
 [[package]]

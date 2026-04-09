@@ -1,7 +1,7 @@
-# SDK-First + Showcase + Pilot Master Plan
+# CellForge SDK-First + Showcase + Pilot Master Plan
 
 ## Product Objective
-Ship a stable, fast, and easy-to-integrate NCA SDK for UE5/C++ teams, prove value with pilot customers, and convert pilots into repeatable paid usage.
+Ship a stable, fast, and easy-to-integrate CellForge SDK for UE5/C++ teams, prove value with pilot customers, and convert pilots into repeatable paid usage.
 
 ## Single Best Path (Selected)
 UE5-first SDK product with a high-quality preset showcase and two paid pilots.
@@ -17,7 +17,7 @@ Why this is the best path:
 - gameplay teams building destructible or regenerative systems
 
 ## Positioning
-"Production-ready NCA runtime for real-time self-healing and reactive materials in UE5, with C-API and hot-reload."
+"Production-ready CellForge runtime for real-time self-healing and reactive materials in UE5, with C-API and hot-reload."
 
 ## Product Pillars
 1. Stable SDK Core

@@ -1,4 +1,6 @@
-# NCA C-API SDK Notes
+# CellForge C-API SDK Notes
+
+CellForge Engine keeps the legacy `nca_engine_*` ABI surface so existing integrations continue to work without source changes.
 
 ## Rust build targets
 
